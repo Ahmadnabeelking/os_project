@@ -7,9 +7,10 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
+
 public class CPU {
 
-	public static void fcfs(List<Process> processes) {
+	public void fcfs(List<Process> processes) {
 		int currentTime = 0;
 		for (Process process : processes) {
 			process.startTime = Math.max(currentTime, process.arrivalTime);
@@ -19,7 +20,7 @@ public class CPU {
 		}
 	}
 
-	public static void rr(List<Process> processes, int timeQuantum) {
+	public  void rr(List<Process> processes, int timeQuantum) {
 		int currentTime = 0;
 		int completed = 0;
 		Queue<Process> readyQueue = new LinkedList<>();
@@ -60,102 +61,73 @@ public class CPU {
 		}
 	}
 
-
 	public static void srft(List<Process> processes) {
-		int currentTime = 0;
-		PriorityQueue<Process> readyQueue = new PriorityQueue<>(Comparator.comparingInt(Process::getCpuBurstTime));
-
-		while (!processes.isEmpty() || !readyQueue.isEmpty()) {
-			// Add arrived processes to the queue
-			for (Process process : processes) {
-				if (process.arrivalTime <= currentTime) {
-					readyQueue.add(process);
-				}
+		processes.sort((p1, p2) -> {
+			if (p1.arrivalTime != p2.arrivalTime) {
+				return Integer.compare(p1.arrivalTime, p2.arrivalTime);
 			}
-
-			if (!readyQueue.isEmpty()) {
-				Process running = readyQueue.poll();
-				running.startTime = currentTime;
-
-				// Run the process until completion or the next arrival
-				int remainingBurst = Math.min(running.cpuBurstTime, processes.get(0).arrivalTime - currentTime);
-				running.cpuBurstTime -= remainingBurst;
-				currentTime += remainingBurst;
-
-				if (running.cpuBurstTime > 0) {
-					readyQueue.add(running); // Preempt if not finished
-				} else {
-					running.turnaroundTime = currentTime - running.arrivalTime;
-					running.waitingTime = running.turnaroundTime - running.cpuBurstTime;
-				}
-			} else {
-				currentTime++; // Idle CPU if no processes ready
-			}
-		}
-	}
-
-
-	public static void schedule(List<Process> processes) {
+			return Integer.compare(p1.cpuBurstTime, p2.cpuBurstTime);
+		});
 		int currentTime = 0;
-		int NUM_QUEUES = 3;
-		int[] TIME_QUANTA = { 10, 50, -1 };
-		List<Queue<Process>> queues = new ArrayList<>(NUM_QUEUES);
 
-		// Initialize queues
-		for (int i = 0; i < NUM_QUEUES; i++) {
-			queues.add(new LinkedList<>());
-		}
-
-		// Add initial processes to Q1
 		for (Process process : processes) {
-			if (process.arrivalTime <= currentTime) {
-				queues.get(0).add(process);
-			}
-		}
-
-		while (!processes.isEmpty() || !allQueuesEmpty(queues)) {
-			// Find the highest priority non-empty queue
-			int queueIndex = 0;
-			while (queueIndex < NUM_QUEUES && queues.get(queueIndex).isEmpty()) {
-				queueIndex++;
-			}
-
-			if (queueIndex < NUM_QUEUES) {
-				Process running = queues.get(queueIndex).remove();
-				running.startTime = currentTime;
-
-				if (queueIndex < NUM_QUEUES - 1) { // RR for Q1 and Q2
-					int remainingBurst = Math.min(running.cpuBurstTime, TIME_QUANTA[queueIndex]);
-					running.cpuBurstTime -= remainingBurst;
-					currentTime += remainingBurst;
-
-					if (running.cpuBurstTime > 0) {
-						queues.get(queueIndex + 1).add(running); // Move to next queue if not finished
-					} else {
-						running.turnaroundTime = currentTime - running.arrivalTime;
-						running.waitingTime = running.turnaroundTime - running.cpuBurstTime;
-					}
-				} else { // FCFS for Q3
-					while (running.cpuBurstTime > 0) {
-						running.cpuBurstTime--;
-						currentTime++;
-					}
-					running.turnaroundTime = currentTime - running.arrivalTime;
-					running.waitingTime = running.turnaroundTime - running.cpuBurstTime;
-				}
-			} else {
-				currentTime++; // Idle CPU if all queues are empty
-			}
+			process.waitingTime = Math.max(0, currentTime - process.arrivalTime);
+			currentTime += process.cpuBurstTime;
+			process.turnaroundTime = process.waitingTime + process.cpuBurstTime;
 		}
 	}
 
-	private static boolean allQueuesEmpty(List<Queue<Process>> queues) {
-		for (Queue<Process> queue : queues) {
-			if (!queue.isEmpty()) {
-				return false;
+	public void MultilevelFeedbackQueues(List<Process> processes) {
+		 LinkedList<Process> q1 = new LinkedList<>();
+	        LinkedList<Process> q2 = new LinkedList<>();
+	        LinkedList<Process> q3 = new LinkedList<>();
+	        int currentTime = 0;
+	        for (Process process : processes) {
+	            q1.add(process);
+	        }
+	        while (!q1.isEmpty()) {
+				Process currentProcess = q1.poll();
+				currentProcess.startTime = Math.max(currentTime, currentProcess.arrivalTime);
+				currentProcess.waitingTime = currentProcess.startTime - currentProcess.arrivalTime;
+
+				if (currentProcess.cpuBurstTime <= 10) {
+					currentProcess.turnaroundTime = currentProcess.waitingTime + currentProcess.cpuBurstTime;
+					currentTime = currentProcess.startTime + currentProcess.cpuBurstTime;
+					
+				}else{
+					currentProcess.cpuBurstTime -= 10;
+					currentTime = currentProcess.startTime + 10;
+					q2.offer(currentProcess);
+					continue;
+				}
 			}
-		}
-		return true;
+
+	     // Process Q2
+			while (!q2.isEmpty()) {
+				Process currentProcess = q2.poll();
+				currentProcess.startTime = Math.max(currentTime, currentProcess.arrivalTime);
+				currentProcess.waitingTime = currentProcess.startTime - currentProcess.arrivalTime;
+
+				if (currentProcess.cpuBurstTime <= 50) {
+					currentProcess.turnaroundTime = currentProcess.waitingTime + currentProcess.cpuBurstTime;
+					currentTime = currentProcess.startTime + currentProcess.cpuBurstTime;
+				}else{
+					currentProcess.cpuBurstTime -= 50;
+					currentTime = currentProcess.startTime + 50;
+					q3.offer(currentProcess);
+					continue;
+				}
+			}
+
+			// Process Q3
+			while (!q3.isEmpty()) {
+				Process currentProcess = q3.poll();
+				currentProcess.startTime = Math.max(currentTime, currentProcess.arrivalTime);
+				currentProcess.waitingTime = currentProcess.startTime - currentProcess.arrivalTime;
+				currentProcess.turnaroundTime = currentProcess.waitingTime + currentProcess.cpuBurstTime;
+				currentTime = currentProcess.startTime + currentProcess.cpuBurstTime;
+			}
+
 	}
 
 	public double calculateAverageTurnaroundTime(List<Process> processes) {

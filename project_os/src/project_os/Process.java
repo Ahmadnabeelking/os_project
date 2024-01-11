@@ -1,25 +1,25 @@
 package project_os;
 
 public class Process {
-	int processId;
+	int processid;
 	int arrivalTime;
 	int cpuBurstTime;
 	int startTime;
 	int waitingTime;
 	int turnaroundTime;
 
-	public Process(int processId, int arrivalTime, int cpuBurstTime) {
-		this.processId = processId;
+	public Process(int processid, int arrivalTime, int cpuBurstTime) {
+		this.processid = processid;
 		this.arrivalTime = arrivalTime;
 		this.cpuBurstTime = cpuBurstTime;
 	}
 
 	public int getProcessId() {
-		return processId;
+		return processid;
 	}
 
 	public void setProcessId(int processId) {
-		this.processId = processId;
+		this.processid = processId;
 	}
 
 	public int getArrivalTime() {
